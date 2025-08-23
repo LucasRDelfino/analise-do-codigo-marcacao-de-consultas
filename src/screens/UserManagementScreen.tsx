@@ -1,16 +1,21 @@
+/**
+ * Importações principais do React, navegação e estilização
+ */
 import React, { useState } from 'react';
 import styled from 'styled-components/native';
 import { ScrollView, ViewStyle, TextStyle } from 'react-native';
-import { Button, ListItem, Text } from 'react-native-elements';
+import { Button, ListItem } from 'react-native-elements';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../types/navigation';
 import theme from '../styles/theme';
 import Header from '../components/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+/**
+ * Tipagem das propriedades e do modelo de usuário
+ */
 type UserManagementScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'UserManagement'>;
 };
@@ -26,18 +31,29 @@ interface StyledProps {
   role: string;
 }
 
+/**
+ * Tela para gerenciamento de usuários
+ */
 const UserManagementScreen: React.FC = () => {
+  // Obtém informações do usuário autenticado
   const { user } = useAuth();
+
+  // Hook de navegação
   const navigation = useNavigation<UserManagementScreenProps['navigation']>();
+
+  // Estados para lista de usuários e controle de carregamento
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
+  /**
+   * Função para carregar os usuários armazenados no AsyncStorage
+   * Exclui o usuário atual da lista
+   */
   const loadUsers = async () => {
     try {
       const storedUsers = await AsyncStorage.getItem('@MedicalApp:users');
       if (storedUsers) {
         const allUsers: User[] = JSON.parse(storedUsers);
-        // Filtra o usuário atual da lista
         const filteredUsers = allUsers.filter(u => u.id !== user?.id);
         setUsers(filteredUsers);
       }
@@ -48,6 +64,10 @@ const UserManagementScreen: React.FC = () => {
     }
   };
 
+  /**
+   * Função para excluir um usuário pelo ID
+   * Atualiza a lista no AsyncStorage e recarrega os dados
+   */
   const handleDeleteUser = async (userId: string) => {
     try {
       const storedUsers = await AsyncStorage.getItem('@MedicalApp:users');
@@ -55,20 +75,25 @@ const UserManagementScreen: React.FC = () => {
         const allUsers: User[] = JSON.parse(storedUsers);
         const updatedUsers = allUsers.filter(u => u.id !== userId);
         await AsyncStorage.setItem('@MedicalApp:users', JSON.stringify(updatedUsers));
-        loadUsers(); // Recarrega a lista
+        loadUsers(); // Recarrega lista após exclusão
       }
     } catch (error) {
       console.error('Erro ao deletar usuário:', error);
     }
   };
 
-  // Carrega os usuários quando a tela estiver em foco
+  /**
+   * Carrega usuários sempre que a tela estiver em foco
+   */
   useFocusEffect(
     React.useCallback(() => {
       loadUsers();
     }, [])
   );
 
+  /**
+   * Retorna o nome da função do usuário traduzido para português
+   */
   const getRoleText = (role: string) => {
     switch (role) {
       case 'admin':
@@ -82,12 +107,19 @@ const UserManagementScreen: React.FC = () => {
     }
   };
 
+  /**
+   * Renderização da tela de gerenciamento de usuários
+   */
   return (
     <Container>
+      {/* Cabeçalho padrão */}
       <Header />
+
+      {/* Conteúdo com rolagem */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Title>Gerenciar Usuários</Title>
 
+        {/* Botão para adicionar novo usuário */}
         <Button
           title="Adicionar Novo Usuário"
           onPress={() => {}}
@@ -95,6 +127,7 @@ const UserManagementScreen: React.FC = () => {
           buttonStyle={styles.buttonStyle}
         />
 
+        {/* Exibição condicional da lista de usuários */}
         {loading ? (
           <LoadingText>Carregando usuários...</LoadingText>
         ) : users.length === 0 ? (
@@ -109,11 +142,15 @@ const UserManagementScreen: React.FC = () => {
                 <ListItem.Subtitle style={styles.userEmail as TextStyle}>
                   {user.email}
                 </ListItem.Subtitle>
+
+                {/* Exibe função do usuário */}
                 <RoleBadge role={user.role}>
                   <RoleText role={user.role}>
                     {getRoleText(user.role)}
                   </RoleText>
                 </RoleBadge>
+
+                {/* Botões de ação */}
                 <ButtonContainer>
                   <Button
                     title="Editar"
@@ -133,6 +170,7 @@ const UserManagementScreen: React.FC = () => {
           ))
         )}
 
+        {/* Botão para voltar à tela anterior */}
         <Button
           title="Voltar"
           onPress={() => navigation.goBack()}
@@ -144,6 +182,9 @@ const UserManagementScreen: React.FC = () => {
   );
 };
 
+/**
+ * Estilos básicos para os componentes da tela
+ */
 const styles = {
   scrollContent: {
     padding: 20,
@@ -184,6 +225,9 @@ const styles = {
   },
 };
 
+/**
+ * Componentes estilizados com styled-components
+ */
 const Container = styled.View`
   flex: 1;
   background-color: ${theme.colors.background};
@@ -258,4 +302,4 @@ const ButtonContainer = styled.View`
   margin-top: 8px;
 `;
 
-export default UserManagementScreen; 
+export default UserManagementScreen;
